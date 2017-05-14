@@ -22,12 +22,6 @@ add_custom_target(
 )
 
 add_custom_target(
-        UPLOADFS_${PROJECT_NAME} ALL
-        COMMAND ${PLATFORMIO_CMD} -f -c clion run --target uploadfs
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-)
-
-add_custom_target(
         REBUILD_PROJECT_INDEX_${PROJECT_NAME} ALL
         COMMAND ${PLATFORMIO_CMD} -f -c clion init --ide clion
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
