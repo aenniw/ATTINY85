@@ -14,3 +14,5 @@
 | G                     | -     | Ground                        |
 | 5V                    | -     | 5V                            |
 | VIN                   | -     |                               |
+
+[Digispark SoftSerial library](https://github.com/J-Rios/Digispark_SoftSerial-INT0)
