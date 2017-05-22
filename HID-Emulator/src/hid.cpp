@@ -2,6 +2,7 @@
 #include <SoftSerial_INT0.h>
 
 #define __KEYBOARD__
+#define __DEBUG__
 
 #ifdef __KEYBOARD__
 #include <DigiKeyboard.h>
@@ -13,7 +14,7 @@
 #define AT_OK "AT->OK"
 #define AT_NOK "AT->NOK"
 #define AT_NA "AT->NA"
-#define AT_B "AT->BUSY"
+#define AT_EOB "AT->EOB"
 
 #define P_RX 2                        // Reception PIN (SoftSerial)
 #define P_TX 1                        // Transmition PIN (SoftSerial)
@@ -31,19 +32,6 @@ void setup() {
     serial.begin(9600); // Initialize the serial port
 }
 
-static int readString(char *s, const char end = '\0') {
-    char c, len = 0;
-    while (serial.available() && len < BUFFER_MAX) {
-        c = (char) serial.read();
-        if (c == end) {
-            break;
-        }
-        s[len] = c;
-        len++;
-    }
-    return len;
-}
-
 static int parse_uint(const char *msg, uint8_t *offset) {
     for (; *offset < BUFFER_MAX && (msg[*offset] > '9' || msg[*offset] < '0'); (*offset)++);
     const int number = atoi(msg + *offset);
@@ -51,7 +39,7 @@ static int parse_uint(const char *msg, uint8_t *offset) {
     return number;
 }
 
-const char *handleAT(const char *msg) {
+static const char *handleAT(const char *msg) {
     if (msg[0] == 'A' && msg[1] == 'T' && msg[2] == '+') {
         return AT_NOK;
     }
@@ -92,13 +80,32 @@ const char *handleAT(const char *msg) {
     return AT_NA;
 }
 
+static char buffer[BUFFER_MAX] = {'\0'} , buffer_pos = 0;
+static bool buffer_ready = false;
 
 void loop() {
-    char msg[BUFFER_MAX] = {'\0'};
-    if (readString(msg, '\n')) {
+    if(buffer_ready) {
+#ifdef __DEBUG__
         serial.print("Recieved: ");
-        serial.println((const char *) msg);
-        serial.println(handleAT(msg));
+        serial.println((const char*) buffer);
+#else
+        handleAT(buffer);
+#endif
+        buffer_ready = false;
+        buffer_pos = 0;
+    } else if (serial.available()){
+        if(buffer_pos >= BUFFER_MAX){
+            serial.println((const char*)AT_EOB);
+            buffer_ready = true;
+        } else {
+            char c = (char) serial.read();
+            if (c == '\n') {
+                buffer_ready = true;
+                buffer[buffer_pos] = '\0';
+            } else {
+                buffer[buffer_pos++] = c;
+            }
+        }
     }
 #ifdef __KEYBOARD__
     DigiKeyboard.update();
