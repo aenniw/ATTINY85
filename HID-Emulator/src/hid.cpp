@@ -17,7 +17,7 @@
 
 #define P_RX 2                        // Reception PIN (SoftSerial)
 #define P_TX 1                        // Transmition PIN (SoftSerial)
-
+#define BUFFER_MAX 256
 
 typedef enum {
     NOP = 0,
@@ -31,62 +31,49 @@ void setup() {
     serial.begin(9600); // Initialize the serial port
 }
 
-int readString(String &s, const char end = '\0') {
+static int readString(char *s, const char end = '\0') {
     char c, len = 0;
-    while (serial.available()) {
+    while (serial.available() && len < BUFFER_MAX) {
         c = (char) serial.read();
         if (c == end) {
             break;
         }
-        s += c;
+        s[len] = c;
         len++;
     }
     return len;
 }
 
-int parse_uint(const String &msg) {
-    const int msg_len = msg.length();
-    int i;
-    for (i = msg.indexOf('+') + 1; i < msg_len; i++) {
-        msg.charAt((unsigned int) i);
-    }
-
-    return -1;
+static int parse_uint(const char *msg, uint8_t *offset) {
+    for (; *offset < BUFFER_MAX && (msg[*offset] > '9' || msg[*offset] < '0'); (*offset)++);
+    const int number = atoi(msg + *offset);
+    for (; *offset < BUFFER_MAX && msg[*offset] <= '9' && msg[*offset] >= '0'; (*offset)++);
+    return number;
 }
 
-
-const char *handleAT(const String &msg) {
-    if (!msg.startsWith("AT+")) {
+const char *handleAT(const char *msg) {
+    if (msg[0] == 'A' && msg[1] == 'T' && msg[2] == '+') {
         return AT_NOK;
     }
-    const AT_TYPE type = (const AT_TYPE) parse_uint(msg);
-    const int p_start = msg.indexOf(' ');
-    if (p_start <= 0) return AT_NOK;
-    const String payload = msg.substring((unsigned int) p_start + 1).trim();
-    int arg1 = -1, arg2 = -1;
+    uint8_t offset = 3;
+    const AT_TYPE type = (const AT_TYPE) parse_uint(msg, &offset);
+    const int arg1 = parse_uint(msg, &offset), arg2 = parse_uint(msg, &offset);
     switch (type) {
 #ifdef __KEYBOARD__
         case K_PRINT:
-            //DigiKeyboard.println(payload);
+            DigiKeyboard.println(msg + offset);
             return AT_OK;
         case K_DELAY:
-            arg1 = parse_uint(payload);
-            if (arg1 < 0) return AT_NOK;
-            //DigiKeyboard.delay(arg1);
+            if (arg1 <= 0) return AT_NOK;
+            DigiKeyboard.delay(arg1);
             return AT_OK;
         case K_PRESS:
-            arg1 = parse_uint(payload),
-                    arg2 = parse_uint(payload.substring((unsigned int) (payload.indexOf(' ') + 1)));
-            if (arg1 < 0) return AT_NOK;
-            if (arg2 < 0) DigiKeyboard.sendKeyPress((byte) arg1);
-            else DigiKeyboard.sendKeyPress((byte) arg1, (byte) arg2);
+            if (arg1 <= 0) return AT_NOK;
+            DigiKeyboard.sendKeyPress((byte) arg1, (byte) arg2);
             return AT_OK;
         case K_STROKE:
-            arg1 = parse_uint(payload),
-                    arg2 = parse_uint(payload.substring((unsigned int) (payload.indexOf(' ') + 1)));
-            if (arg1 < 0) return AT_NOK;
-            if (arg2 < 0) DigiKeyboard.sendKeyStroke((byte) arg1);
-            else DigiKeyboard.sendKeyStroke((byte) arg1, (byte) arg2);
+            if (arg1 <= 0) return AT_NOK;
+            DigiKeyboard.sendKeyStroke((byte) arg1, (byte) arg2);
             return AT_OK;
 #endif
 #ifdef __MOUSE__
@@ -105,12 +92,13 @@ const char *handleAT(const String &msg) {
     return AT_NA;
 }
 
+
 void loop() {
-    String msg;
+    char msg[BUFFER_MAX] = {'\0'};
     if (readString(msg, '\n')) {
         serial.print("Recieved: ");
-        serial.println(msg);
-        serial.println(handleAT(msg.trim()));
+        serial.println((const char *) msg);
+        serial.println(handleAT(msg));
     }
 #ifdef __KEYBOARD__
     DigiKeyboard.update();
@@ -119,64 +107,3 @@ void loop() {
     DigiMouse.update();
 #endif
 }
-
-//// UI ------------------------------------------------------------------------
-// > [MODE=03/K_PRINT] [ARGS...]
-// > K_STROKE T L_CTRL+L_SHIFT
-// > echo "Hello World"   <-->   K_PRINT echo "Hello World"
-
-// Web UI -> ws->stream cmds to esp -> stream ATs via i2c to ATtiny -> execute AT
-// Web UI <- ws->stream resp from esp <- stream ATs via i2c from ATtiny <- AT response
-// Web UI -> Status / Administration / HID / Logout
-// Web UI -> HID -> cmd log, cmd input, send cmd
-
-
-//// KEYBOARD ------------------------------------------------------------------
-
-// AT+01 -> STROKE
-// AT+01 [KEY] [?MODIFICATOR]
-// AT+01 (uint) (uint)
-// AT+01 parse_int() ?parse_int()
-
-// AT+02 -> PRESS
-// AT+02 [KEY] [?MODIFICATOR]
-// AT+02 (uint) (uint)
-// AT+02 parse_int() ?parse_int()
-
-// AT+03 -> DELAY
-// AT+03 [TIME]
-// AT+03 (uint)
-// AT+03 parse_int()
-
-// AT+04 -> PRINT
-// AT+04 [MSG]
-// AT+04 (char*)
-// AT+04 reuse_rest_of_buffer()
-
-
-//// MOUSE ---------------------------------------------------------------------
-
-// AT+11 -> STROKE
-// AT+11 [KEY]
-// AT+00 (uint)
-// AT+11 parse_int()
-
-// AT+12 -> PRESS
-// AT+12 [KEY]
-// AT+00 (uint)
-// AT+12 parse_int()
-
-// AT+13 -> DELAY
-// AT+13 [TIME]
-// AT+00 (uint)
-// AT+13 parse_int()
-
-// AT+14 -> MOVE
-// AT+14 [X] [Y]
-// AT+00 (int) (int)
-// AT+14 parse_int() parse_int()
-
-// AT+15 -> SCROLL
-// AT+15 [S]
-// AT+00 (int)
-// AT+15 parse_int()
