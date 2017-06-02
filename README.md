@@ -1,4 +1,4 @@
-# ATTINY85
+# ATTINY85 based projects
 [![Build Status](https://travis-ci.org/aenniw/ATTINY85.svg?branch=master)](https://travis-ci.org/aenniw/ATTINY85)
 
 ![Digispark ATtiny85 layout](img/Digispark_ATTINY85_layout.jpg)

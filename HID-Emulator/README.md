@@ -16,4 +16,5 @@ Currently only QWERTY US layout translation is supported by DigiKeyboard library
 which causes misinterpretation of KEYs provided to DigiKeyboard and resolution of HID device. 
 
 #### References
-[Digispark SoftSerial library](https://github.com/J-Rios/Digispark_SoftSerial-INT0)
+[Digispark SoftSerial library](https://github.com/J-Rios/Digispark_SoftSerial-INT0),
+[Debug Tools](https://github.com/digistump/DigisparkExamplePrograms/tree/master/Python/DigiUSB/source)
