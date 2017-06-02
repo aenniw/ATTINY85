@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <SoftSerial_INT0.h>
-
+#define __KEYBOARD__
 #ifdef __KEYBOARD__
 #include <DigiKeyboard.h>
 #endif
@@ -61,13 +61,13 @@ void setup() {
 #endif
 }
 
-uint8_t l = 0, t = 0;
+uint8_t l = 0, t = 0, p_prev = 0;
 
 void loop() {
     if (serial.available()) {
         if (!l) {
             l = (uint8_t) serial.read();
-            t = NOP;
+            p_prev = t = NOP;
         } else if (!t) t = (uint8_t) serial.read();
         else {
             const uint8_t p = (uint8_t) serial.read();
@@ -76,14 +76,16 @@ void loop() {
             // DigiKeyboard.update() at least every 50ms
             DigiKeyboard.sendKeyStroke(0);
             if (t == K_PRINT) {
-                DigiKeyboard.print((const char) p);
+                DigiKeyboard.write(p);
             } else if (t == K_DELAY) {
                 DigiKeyboard.delay(p);
             } else if (t == K_PRESS) {
-                if (l-- > 1) DigiKeyboard.sendKeyPress(p, (uint8_t) serial.read());
+                if (l > 1) p_prev = p;
+                else if (p_prev) DigiKeyboard.sendKeyPress(p_prev, p);
                 else DigiKeyboard.sendKeyPress(p);
             } else if (t == K_STROKE) {
-                if (l-- > 1) DigiKeyboard.sendKeyStroke(p, (uint8_t) serial.read());
+                if (l > 1) p_prev = p;
+                else if (p_prev) DigiKeyboard.sendKeyStroke(p_prev, p);
                 else DigiKeyboard.sendKeyStroke(p);
             } else serial.read();
 #endif
@@ -93,7 +95,8 @@ void loop() {
             if (t == M_DELAY) {
                 DigiMouse.delay(p);
             } else if (t == M_MOVE) {
-                if (l-- > 1) DigiMouse.move((char) p, (char) serial.read(), 0);
+                if (l > 1) p_prev = p;
+                else if (p_prev) DigiMouse.move((char) p_prev, (char) p, 0);;
                 else DigiMouse.move((char) p, 0, 0);
             } else if (t == M_SCROLL) {
                 DigiMouse.scroll((char) p);
