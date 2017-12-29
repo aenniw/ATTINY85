@@ -10,5 +10,8 @@ cmake-build-debug
 *.pyc
 /HID-Emulator/lib/DigisparkKeyboard/usbdrv.h
 /HID-Emulator/lib/DigisparkUSB/examples/Echo/Echo.ino
-/HID-Emulator/debug/sys
-/HID-Emulator/debug/usb
+/debug/sys
+/debug/usb
+.vscode
+CMakeCache.txt
+CMakeFiles/

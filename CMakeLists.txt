@@ -5,3 +5,4 @@ execute_process(COMMAND ${CMAKE_HOME_DIRECTORY}/configure ${CMAKE_HOME_DIRECTORY
 set(CMAKE_CXX_STANDARD 11)
 
 add_subdirectory(HID-Emulator)
+add_subdirectory(HW-Watchdog)
