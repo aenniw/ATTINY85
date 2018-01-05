@@ -1,12 +1,9 @@
-# /usr/bin/python
+#!/usr/bin/python
 
-#
-# Written for PyUSB 1.0 (w/libusb 1.0.3)
-#
-
-import usb  # 1.0 not 0.4
+import logging
 import time
-import sys
+import usb  # 1.0 not 0.4
+
 
 def getStringDescriptor(device, index):
     response = device.ctrl_transfer(usb.util.ENDPOINT_IN,
@@ -14,9 +11,7 @@ def getStringDescriptor(device, index):
                                     (usb.util.DESC_TYPE_STRING << 8) | index,
                                     0,  # language id
                                     255)  # length
-
     # TODO: Refer to 'libusb_get_string_descriptor_ascii' for error handling
-
     return response[2:].tostring().decode('utf-16')
 
 
@@ -38,7 +33,6 @@ class ArduinoUsbDevice(object):
         self.idVendor = idVendor
         self.idProduct = idProduct
 
-        # TODO: Make more compliant by checking serial number also.
         self.device = usb.core.find(idVendor=self.idVendor,
                                     idProduct=self.idProduct)
 
@@ -46,15 +40,18 @@ class ArduinoUsbDevice(object):
             raise Exception("Device not found")
 
     def write(self, byte):
-        # TODO: Return bytes written?
-        # print "Write:"+str(byte)
         self._transfer(REQUEST_TYPE_SEND, USBRQ_HID_SET_REPORT,
                        byte,
                        [])  # ignored
 
-    def writeString(self, data):
+    def write_string(self, data):
         for c in data:
-            self.write(ord(c))
+            try:
+                self.write(ord(c))
+                time.sleep(send_delay)
+            except:
+                time.sleep(retry_delay)
+                logging.debug('Retry write.')
 
     def read(self):
         response = self._transfer(REQUEST_TYPE_RECEIVE, USBRQ_HID_GET_REPORT,
@@ -66,11 +63,18 @@ class ArduinoUsbDevice(object):
 
         return response[0]
 
-    def readUntil(self, delim='\n'):
-        data = chr(self.read())
-        while not data.endswith(delim):
-            data += chr(self.read())
-        return data
+    def read_until(self, delim='\0'):
+        data = ""
+        while True:
+            try:
+                data += chr(self.read())
+                time.sleep(send_delay)
+                if data.endswith(delim):
+                    break
+            except:
+                time.sleep(retry_delay)
+                logging.debug('Retry read.')
+        return data.replace("\n", ", ").upper().strip()
 
     def _transfer(self, request_type, request, index, value):
         return self.device.ctrl_transfer(request_type, request,
@@ -87,20 +91,43 @@ class ArduinoUsbDevice(object):
         return getStringDescriptor(self.device, self.device.iManufacturer)
 
 
-if __name__ == "__main__":
-    try:
-        watchdog = ArduinoUsbDevice(idVendor=0x16c0, idProduct=0x05df)
-        while True:
-            try:
-                watchdog.writeString("PING")
-            except:
-                sys.exit("Error writing")        
-            try:
-                resp = watchdog.readUntil()
-                if "OK" not in resp or "PING" not in resp:
-                    sys.exit("Error interpreting command")
-            except:
-                sys.exit("Error reading")
-            time.sleep(0.5)
-    except:
-        sys.exit("No DigiUSB Device Found")
+keep_alive = 60
+send_delay = 0.001
+retry_delay = 0.2
+
+logging.basicConfig(format='%(asctime)s\t%(levelname)s\t%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+                    level=logging.INFO)
+
+try:
+    theDevice = ArduinoUsbDevice(idVendor=0x16c0, idProduct=0x05df)
+
+    theDevice.write_string("STATUS")
+    response = theDevice.read_until()
+    logging.info(response)
+    if not "OK" in response:
+        raise Exception("Status check failed.")
+
+    if not "ARMED: TRUE" in response.upper():
+        theDevice.write_string("SET " + str(keep_alive * 1000))
+        response = theDevice.read_until()
+        logging.info(response)
+        if not "OK" in response:
+            raise Exception("Timeout not set.")
+
+        theDevice.write_string("START")
+        response = theDevice.read_until()
+        logging.info(response)
+        if not "OK" in response:
+            raise Exception("Starting failed.")
+
+    while True:
+        theDevice.write_string("PING")
+        response = theDevice.read_until()
+        logging.info(response)
+        if "OK" in response:
+            time.sleep(keep_alive / 3)
+        else:
+            time.sleep(retry_delay)
+            logging.warning('Retry PING.')
+except Exception, e:
+    logging.error('Device error: ' + str(e))
