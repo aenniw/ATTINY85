@@ -2,7 +2,6 @@
 
 import argparse
 import logging
-import signal
 import time
 import usb  # 1.0 not 0.4
 
@@ -47,6 +46,7 @@ class ArduinoUsbDevice(object):
                        [])  # ignored
 
     def write_string(self, data):
+        data += '\0'
         for c in data:
             try:
                 self.write(ord(c))
@@ -115,7 +115,6 @@ if __name__ == "__main__":
 
     try:
         theDevice = ArduinoUsbDevice(idVendor=0x16c0, idProduct=0x05df)
-        signal.signal(signal.SIGINT, theDevice.write_string("STOP"))
 
         theDevice.write_string("STATUS")
         response = theDevice.read_until()
