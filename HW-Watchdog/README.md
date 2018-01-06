@@ -2,7 +2,7 @@
 
 ## Dependencies
 
-```pip install pyusb```
+```pip install pyusb argparse```
 
 #### Used pin-outs
 
