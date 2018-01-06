@@ -1,9 +1,9 @@
-Package: linuxconfig
+Package: hw-watchdog
 Version: 1.0
 Section: custom
 Priority: optional
 Architecture: all
 Essential: no
 Installed-Size: 1024
-Maintainer: linuxconfig.org
-Description: Print linuxconfig.org on the screen
+Maintainer: aenniw@gmail.com
+Description: Manages AtTiny85 HW-Watchdog

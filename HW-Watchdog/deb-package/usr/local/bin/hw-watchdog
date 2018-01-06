@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
+import argparse
 import logging
+import signal
 import time
 import usb  # 1.0 not 0.4
 
@@ -91,43 +93,65 @@ class ArduinoUsbDevice(object):
         return getStringDescriptor(self.device, self.device.iManufacturer)
 
 
-keep_alive = 60
 send_delay = 0.001
 retry_delay = 0.2
 
-logging.basicConfig(format='%(asctime)s\t%(levelname)s\t%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
-                    level=logging.INFO)
+if __name__ == "__main__":
 
-try:
-    theDevice = ArduinoUsbDevice(idVendor=0x16c0, idProduct=0x05df)
+    parser = argparse.ArgumentParser(description='Manages AtTiny85 HW-Watchdog')
+    parser.add_argument('-t', '--timeout', default=60, type=int, metavar='*',
+                        help='timeout in ms.')
+    parser.add_argument('-o', '--output', default='', metavar='*',
+                        help='file for logging.')
+    parser.add_argument('-d', '--disable', action='store_true',
+                        help='disables HW-Watchdog.')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='verbose logging.')
 
-    theDevice.write_string("STATUS")
-    response = theDevice.read_until()
-    logging.info(response)
-    if not "OK" in response:
-        raise Exception("Status check failed.")
+    args = parser.parse_args()
 
-    if not "ARMED: TRUE" in response.upper():
-        theDevice.write_string("SET " + str(keep_alive * 1000))
+    logging.basicConfig(format='%(asctime)s\t%(levelname)s\t%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',
+                        level=logging.DEBUG if args.verbose else logging.INFO)
+
+    try:
+        theDevice = ArduinoUsbDevice(idVendor=0x16c0, idProduct=0x05df)
+        signal.signal(signal.SIGINT, theDevice.write_string("STOP"))
+
+        theDevice.write_string("STATUS")
         response = theDevice.read_until()
         logging.info(response)
         if not "OK" in response:
-            raise Exception("Timeout not set.")
+            raise Exception("Status check failed.")
 
-        theDevice.write_string("START")
-        response = theDevice.read_until()
-        logging.info(response)
-        if not "OK" in response:
-            raise Exception("Starting failed.")
+        if not "ARMED: TRUE" in response.upper():
+            theDevice.write_string("SET " + str(args.timeout * 1000))
+            response = theDevice.read_until()
+            logging.info(response)
+            if not "OK" in response:
+                raise Exception("Timeout not set.")
 
-    while True:
-        theDevice.write_string("PING")
-        response = theDevice.read_until()
-        logging.info(response)
-        if "OK" in response:
-            time.sleep(keep_alive / 3)
-        else:
-            time.sleep(retry_delay)
-            logging.warning('Retry PING.')
-except Exception, e:
-    logging.error('Device error: ' + str(e))
+            theDevice.write_string("START")
+            response = theDevice.read_until()
+            logging.info(response)
+            if not "OK" in response:
+                raise Exception("Starting failed.")
+        elif args.disable:
+            theDevice.write_string("STOP")
+            response = theDevice.read_until()
+            logging.info(response)
+            if not "OK" in response:
+                raise Exception("Stopping failed.")
+            else:
+                exit(0)
+
+        while True:
+            theDevice.write_string("PING")
+            response = theDevice.read_until()
+            logging.info(response)
+            if "OK" in response:
+                time.sleep(args.timeout / 3)
+            else:
+                time.sleep(retry_delay)
+                logging.warning('Retry PING.')
+    except Exception, e:
+        logging.error('Device error: ' + str(e))
