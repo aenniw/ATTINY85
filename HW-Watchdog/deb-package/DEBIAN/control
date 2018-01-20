@@ -4,6 +4,6 @@ Section: custom
 Priority: optional
 Architecture: all
 Essential: no
-Installed-Size: 1024
+Installed-Size: 5646
 Maintainer: aenniw@gmail.com
 Description: Manages AtTiny85 HW-Watchdog

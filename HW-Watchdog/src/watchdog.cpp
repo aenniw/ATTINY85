@@ -12,9 +12,13 @@
 
 #define LED_PIN         D1
 #define RESET_PIN       D0
-#define TOGGLE_DELAY    1000
 
-unsigned long startTime = 0, lastPing = 0, parmDelay = 60000;
+unsigned long lastPing = 0, parmDelay = 5, seconds = 1;
+const uint8_t buffer_size = 16;
+char command[buffer_size] = {'\0'};
+int pos = 0, lastRead = -1;
+boolean at_parsed = false;
+long delayCycles = 0;
 
 void setup() {
     pinMode(RESET_PIN, OUTPUT);
@@ -24,47 +28,34 @@ void setup() {
     digitalWrite(LED_PIN, HIGH);
 }
 
-static void toggle(const uint8_t pin, unsigned long delay_time) {
-    digitalWrite(pin, LOW);
-    STREAM.delay(delay_time);
-    digitalWrite(pin, HIGH);
-}
-
-const uint8_t buffer_size = 16;
 
 void loop() {
-    char command[buffer_size] = {'\0'};
-    int pos = 0, lastRead;
-    while (pos + 1 < buffer_size) {
-        if (STREAM.available()) {
-            lastRead = STREAM.read();
-            if (lastRead == '\0') {
-                break;
-            }
-            command[pos++] = (char) lastRead;
+    if (STREAM.available()) {
+        lastRead = STREAM.read();
+        if (lastRead == '\0') {
+            at_parsed = true;
         }
-        STREAM.delay(10);
+        command[pos] = (char) lastRead;
+        pos = (pos + 1) % buffer_size;
     }
-
-    if (pos > 0) {
+    if (at_parsed) {
         boolean valid_command = true;
-        if (startTime > 0 && strcmp(command, "PING") == 0) {
-            toggle(LED_PIN, TOGGLE_DELAY);
-            lastPing = millis();
-        } else if (startTime == 0 && pos > 4 && strncmp(command, "SET ", 4) == 0) {
-            parmDelay = 1;
-            for (int i = 1; pos - i > 3; i++) {
-                parmDelay += pow(10, i - 1) * (command[pos - i] - 48);
-                STREAM.delay(10);
+        if (strcmp(command, "NOP") == 0);
+        else if (lastPing > 0 && strcmp(command, "PING") == 0) {
+            lastPing = seconds;
+        } else if (lastPing == 0 && pos > 4 && strncmp(command, "SET ", 4) == 0) {
+            parmDelay = 0;
+            for (int i = pos - 2; i > 3; i--) {
+                parmDelay += (command[i] - '0') * (int) (pow(10, pos - 2 - i));
             }
-        } else if (startTime == 0 && strcmp(command, "START") == 0) {
-            startTime = millis();
+        } else if (lastPing == 0 && strcmp(command, "START") == 0) {
+            lastPing = seconds;
         } else if (strcmp(command, "STATUS") == 0) {
             STREAM.write("ARMED: ");
-            STREAM.write(startTime ? "True" : "False");
+            STREAM.write(lastPing ? "True" : "False");
             STREAM.write('\n');
-        } else if (startTime > 0 && strcmp(command, "STOP") == 0) {
-            startTime = 0;
+        } else if (lastPing > 0 && strcmp(command, "STOP") == 0) {
+            lastPing = 0;
         } else {
             valid_command = false;
         }
@@ -72,16 +63,29 @@ void loop() {
         if (valid_command) {
             STREAM.write("OK:");
         } else {
-            STREAM.write("Unknown or invalid command: ");
+            STREAM.write("Unknown cmd: ");
         }
         STREAM.write(command);
         STREAM.write((byte) '\0');
+        pos = at_parsed = false;
     }
 
-    if (startTime > 0 && millis() > lastPing + parmDelay) {
-        STREAM.delay(10);
-        toggle(RESET_PIN, TOGGLE_DELAY);
-        startTime = 0;
-    }
     STREAM.refresh();
+    // Seconds tick approximation
+    if (delayCycles == 0) {
+        const auto led_state = uint8_t(digitalRead(LED_PIN)),
+                reset_state = uint8_t(digitalRead(RESET_PIN));
+        digitalWrite(LED_PIN, !led_state);
+
+        if (lastPing > 0 && seconds > lastPing + parmDelay) {
+            if (!reset_state) {
+                lastPing = 0;
+            }
+            digitalWrite(RESET_PIN, !reset_state);
+        }
+
+        delayCycles = long(F_CPU * 0.003);
+        seconds++;
+    }
+    delayCycles--;
 }

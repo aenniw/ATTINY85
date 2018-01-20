@@ -12,7 +12,6 @@ def getStringDescriptor(device, index):
                                     (usb.util.DESC_TYPE_STRING << 8) | index,
                                     0,  # language id
                                     255)  # length
-    # TODO: Refer to 'libusb_get_string_descriptor_ascii' for error handling
     return response[2:].tostring().decode('utf-16')
 
 
@@ -100,7 +99,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Manages AtTiny85 HW-Watchdog')
     parser.add_argument('-t', '--timeout', default=60, type=int, metavar='*',
-                        help='timeout in ms.')
+                        help='timeout in s.')
     parser.add_argument('-o', '--output', default='', metavar='*',
                         help='file for logging.')
     parser.add_argument('-d', '--disable', action='store_true',
@@ -116,6 +115,14 @@ if __name__ == "__main__":
     try:
         theDevice = ArduinoUsbDevice(idVendor=0x16c0, idProduct=0x05df)
 
+        # Forcefully flush rx buffer of device if anything sits there from previous incomplete cmd
+        while True:
+            theDevice.write_string("NOP")
+            response = theDevice.read_until()
+            logging.info(response)
+            if "OK:NOP" in response:
+                break
+
         theDevice.write_string("STATUS")
         response = theDevice.read_until()
         logging.info(response)
@@ -123,7 +130,7 @@ if __name__ == "__main__":
             raise Exception("Status check failed.")
 
         if not "ARMED: TRUE" in response.upper():
-            theDevice.write_string("SET " + str(args.timeout * 1000))
+            theDevice.write_string("SET " + str(args.timeout))
             response = theDevice.read_until()
             logging.info(response)
             if not "OK" in response:
