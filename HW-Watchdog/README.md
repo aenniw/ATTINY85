@@ -1,24 +1,27 @@
 # HW-Watchdog
 
-## Dependencies
+### Parts
+*   [DigiStump](https://www.ebay.com/itm/Digispark-Kickstarter-ATTINY85-Arduino-General-Micro-USB-Development-Board/221889695650?epid=1669310069&hash=item33a9a80fa2:g:GdoAAOSwiLdV~BaV) or other solutions based on ATTINY85
+*   [Relay](https://www.ebay.com/itm/1PCS-5V-One-1-Channel-Relay-Module-Board-Shield-For-PIC-AVR-ARM-Arduino/301924608045?epid=1066441792&hash=item464c1be82d:g:DSoAAOSw5VFWKdoC) Single channel relay
 
-```pip install pyusb argparse```
+### Optional Parts
+*   [Case - TODO](models/)
 
 #### Used pin-outs
 
-![Digispark ATtiny85 layout](../img/Digispark_ATTINY85_layout.jpg)
-
 | Digispark ATTiny85    | Value | Function                      |
 |:---------------------:|:-----:|:------------------------------|
-| D0                    | 0     | IO, PWM0 AREF, MOSI, SDA      |
-| D1                    | 1     | IO, PWM1, MISO                |
-| D2                    | 2     | IO, A1, SCK, SCL              |
-| D3                    | 3     | IO, A3 USB+                   |
-| D4                    | 4     | IO, PWM4, A2, USB-            |
-| D5                    | 5     | IO, A0                        |
+| D0                    | 0     | Relay                           |
 | G                     | -     | Ground                        |
 | 5V                    | -     | 5V                            |
-| VIN                   | -     |                               |
 
-#### Aditional hardware
+#### Dependencies
 
+```pip install pyusb argparse```
+
+#### Usage
+
+    - starting hw-watchdog will automaticaly arm watchdog
+    - to disarm watchdog  any instances of hw-watchdog needs to be terminated and startend with param -d
+    - watchdog wimeout can be set in seconds, with default value 60s
+    - once trigered watchdog trigers relay for 1s to simulate reset button press

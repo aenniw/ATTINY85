@@ -28,4 +28,5 @@ done
 ```
 
 ## SubProjects
-[HID-Emulator](HID-Emulator/README.md)
+[HID-Emulator](HID-Emulator/README.md) |
+[HW-Watchdog](HW-Watchdog/README.md)
