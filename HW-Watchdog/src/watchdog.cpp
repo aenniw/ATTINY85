@@ -13,7 +13,7 @@
 #define LED_PIN         D1
 #define RESET_PIN       D0
 
-unsigned long lastPing = 0, parmDelay = 5, seconds = 1;
+unsigned long lastPing = 0, parmDelay = 60, seconds = 1;
 const uint8_t buffer_size = 16;
 char command[buffer_size] = {'\0'};
 int pos = 0, lastRead = -1;
