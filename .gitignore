@@ -5,6 +5,8 @@
 lib/DigisparkKeyboard
 lib/DigisparkUSB
 .idea
+.vscode
+/target
 CMakeListsPrivate.txt
 cmake-build-debug
 *.pyc
