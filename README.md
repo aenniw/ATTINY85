@@ -1,5 +1,6 @@
 # ATTINY85 based projects
 [![Build Status](https://travis-ci.org/aenniw/ATTINY85.svg?branch=master)](https://travis-ci.org/aenniw/ATTINY85)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=J96CRYPYAY2VE&currency_code=EUR&source=url)
 
 ![Digispark ATtiny85 layout](img/Digispark_ATTINY85_layout.jpg)
 
@@ -18,13 +19,14 @@
 ## Setup environment
 ```
 sudo pip install platformio
+
+IDE=eclipse ./configure     # for eclipse layout setup
+IDE=clion ./configure       # for clion layout setup
 ```
 
 ## Build
 ```
-for PROJECT in ./*/platformio.ini; do
-    cd ${PROJECT%*/*} && platformio run && cd ../;
-done
+./make
 ```
 
 ## SubProjects

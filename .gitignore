@@ -15,6 +15,7 @@ cmake-build-debug
 /debug/sys
 /debug/usb
 .vscode
+CMakeLists.txt
 CMakeCache.txt
 CMakeFiles/
 *.deb
