@@ -5,7 +5,7 @@ test -d ./target && \
 mkdir ./target
 
 TAG=`git tag -l --points-at HEAD`
-for PROJECT_BIN in ./*/.pioenvs/*/firmware.elf; do
+for PROJECT_BIN in ./*/.pio/build/*/firmware.elf; do
     PROJECT_NAME=${PROJECT_BIN%${PROJECT_BIN#*/*/}} && \
         PROJECT_NAME=${PROJECT_NAME%*/} && \
         PROJECT_NAME=${PROJECT_NAME#./*}
