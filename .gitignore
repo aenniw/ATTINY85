@@ -19,3 +19,4 @@ CMakeLists.txt
 CMakeCache.txt
 CMakeFiles/
 *.deb
+.pio
