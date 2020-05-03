@@ -1,5 +1,5 @@
 # ATTINY85 based projects
-[![Build Status](https://travis-ci.org/aenniw/ATTINY85.svg?branch=master)](https://travis-ci.org/aenniw/ATTINY85)
+[![Build Status](https://github.com/aenniw/ATTINY85/workflows/Platformio%20build/badge.svg)](https://github.com/aenniw/ATTINY85/actions?query=workflow%3A%22Platformio+build%22+branch%3Amaster)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=J96CRYPYAY2VE&currency_code=EUR&source=url)
 
 ![Digispark ATtiny85 layout](img/Digispark_ATTINY85_layout.jpg)
